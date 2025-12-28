@@ -157,7 +157,7 @@ export default function BuilderPage() {
     const canvas = fabricRef.current;
     if (!canvas) return;
     const actives = canvas.getActiveObjects();
-    if(!actives.length) return;
+    if (!actives.length) return;
     actives.forEach(obj => {
       canvas.remove(obj);
     })
@@ -376,16 +376,7 @@ export default function BuilderPage() {
             </div>
           </div>
         )}
-        <main className="flex-1 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm rounded-2xl p-4 sm:p-8 border border-slate-800 shadow-2xl min-h-100 overflow-auto">
-          <div className="relative">
-            <canvas
-              ref={canvasRef}
-              width={600}
-              height={600}
-              className="rounded-xl shadow-2xl border-4 border-slate-700 max-w-full h-auto"
-            />
-          </div>
-        </main>
+        <div className="flex-1 flex items-center justify-center min-h-0"> <canvas ref={canvasRef} width={600} height={600} style={{ maxWidth: "100%", maxHeight: "100%", width: "auto", height: "auto", border: "4px solid rgb(51 65 85)" }} className="rounded shadow-inner " /> </div>
       </div>
 
       <Modal open={open} onCloseAction={() => setOpen(false)} onConfirmAction={handleNewFile} />
