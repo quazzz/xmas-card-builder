@@ -5,10 +5,12 @@ import * as fabric from "fabric";
 export default function BuilderPage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [brushSize, setBrushSize] = useState(8);
   const [curColor, setCurColor] = useState("#000000");
   const [open, setOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
+  const publicImages = [{ path: '/1.png', name: 'Kuusk' }, { path: '/2.png', name: 'Lumememm' }, { path: '/3.png', name: 'Jõuluvana' }, { path: '/4.png', name: 'Lumehelves' }, { path: '/5.png', name: 'Ilutulestik' }, { path: '/6.png', name: 'Minion' }];
   useEffect(() => {
     if (!canvasRef.current) return;
 
@@ -18,6 +20,10 @@ export default function BuilderPage() {
       backgroundColor: "#0f172a",
       selection: true
     });
+    const brush = new fabric.PencilBrush(canvas);
+    brush.color = curColor;
+    brush.width = brushSize;
+    canvas.freeDrawingBrush = brush;
 
     fabricRef.current = canvas;
 
@@ -25,6 +31,16 @@ export default function BuilderPage() {
       canvas.dispose();
     };
   }, []);
+  const toggleBrush = () => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const next = !isDrawing;
+    setIsDrawing(next);
+    canvas.isDrawingMode = next;
+    canvas.selection = !next;
+    canvas.discardActiveObject()
+    canvas.renderAll()
+  }
   const handleNewFile = (width: number, height: number) => {
     const canvas = fabricRef.current;
     if (!canvas) return;
@@ -115,6 +131,19 @@ export default function BuilderPage() {
 
 
   };
+  const addSticker = async (path: string) => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const img = await fabric.FabricImage.fromURL(
+      path,
+      { crossOrigin: 'anonymous' }
+    )
+    img.scaleToWidth(300)
+    img.set({ left: 150, right: 150 })
+    canvas.add(img);
+    canvas.setActiveObject(img);
+    canvas.renderAll()
+  }
 
   const downloadPNG = () => {
     const canvas = fabricRef.current;
@@ -143,6 +172,9 @@ export default function BuilderPage() {
     if (!canvas) return;
     const color = e.target.value;
     setCurColor(color)
+    if (canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.color = color;
+    }
     const active = canvas.getActiveObject();
     if (!active) return;
     if (active.type === 'textbox' || active.type === 'rect' || active.type === 'text') {
@@ -152,6 +184,13 @@ export default function BuilderPage() {
       active.set({ fill: color });
     }
     canvas.renderAll()
+  }
+  const changeBrushSize = (size: number) => {
+    const canvas = fabricRef.current;
+    if (!canvas || !canvas.freeDrawingBrush) return;
+    setBrushSize(size);
+    canvas.freeDrawingBrush.width = size;
+
   }
   const deleteSelected = () => {
     const canvas = fabricRef.current;
@@ -164,6 +203,7 @@ export default function BuilderPage() {
     canvas.discardActiveObject();
     canvas.renderAll()
   };
+
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-emerald-950 text-white flex flex-col">
 
@@ -209,11 +249,11 @@ export default function BuilderPage() {
               <div className="space-y-2">
                 <button
                   onClick={addText}
-                  className="w-full px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg font-medium transition-colors text-left flex items-center gap-2"
+                  className="border border-slate-700 hover:border-slate-600 w-full px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg font-medium transition-colors text-left flex items-center gap-2"
                 >
                   <span className="text-xl">✏️</span> Lisa tekst
                 </button>
-                <label className="w-full px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-2">
+                <label className="border border-slate-700 hover:border-slate-600 w-full px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-2">
                   <span className="text-xl">🖼️</span> Lisa pilt
                   <input
                     type="file"
@@ -224,7 +264,25 @@ export default function BuilderPage() {
                 </label>
               </div>
             </div>
-
+            <div className="pb-3 border-b border-slate-700">
+              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Valmis pildid</h2>
+              <div className="grid grid-cols-2 gap-2">
+                {publicImages.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => addSticker(image.path)}
+                    className="cursor-pointer p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors border border-slate-700 hover:border-slate-600 group"
+                    title={image.name}
+                  >
+                    <img
+                      src={image.path}
+                      alt={image.name}
+                      className="w-full h-12 object-contain opacity-80 group-hover:opacity-100 transition-opacity"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="pb-3 border-b border-slate-700">
               <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Kujundid</h2>
               <div className="grid grid-cols-3 gap-2">
@@ -255,7 +313,7 @@ export default function BuilderPage() {
             <div className="pb-3 border-b border-slate-700">
               <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Värv</h2>
               <div className="space-y-2">
-                <div className="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2">
+                <div className="border border-slate-700 hover:border-slate-600 flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2">
                   <span className="text-sm font-medium">Objekti värv</span>
                   <input
                     type="color"
@@ -264,7 +322,7 @@ export default function BuilderPage() {
                     className="w-10 h-10 rounded cursor-pointer border-2 border-slate-600"
                   />
                 </div>
-                <div className="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2">
+                <div className="border border-slate-700 hover:border-slate-600 flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2">
                   <span className="text-sm font-medium">Taustavärv</span>
                   <input
                     type="color"
@@ -279,16 +337,34 @@ export default function BuilderPage() {
               <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Toimingud</h2>
               <div className="space-y-2">
                 <button
+                  onClick={toggleBrush}
+                  className={`border cursor-pointer border-slate-700 hover:border-slate-600 w-full px-4 py-2.5 rounded-lg font-medium transition-colors
+    ${isDrawing
+                      ? "bg-emerald-600 text-white"
+                      : "bg-slate-800 hover:bg-slate-700"}`}
+                >
+                  🖌️ {isDrawing ? "Pliiats sees" : "Pliiats"}
+                </button>
+                <input
+                  type="range"
+                  min={1}
+                  max={50}
+                  value={brushSize}
+                  onChange={(e) => changeBrushSize(Number(e.target.value))}
+                  className="w-full cursor-pointer"
+                />
+
+                <button
                   onClick={deleteSelected}
-                  className="w-full px-4 py-2.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 rounded-lg font-medium transition-all text-red-300 hover:text-red-200"
+                  className="cursor-pointer w-full px-4 py-2.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 rounded-lg font-medium transition-all text-red-300 hover:text-red-200"
                 >
                   🗑️ Kustuta valitud
                 </button>
                 <button
                   onClick={downloadPNG}
-                  className="w-full px-4 py-3 bg-linear-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-slate-900 rounded-xl font-bold transition-all shadow-lg shadow-yellow-900/30 hover:shadow-yellow-800/40 hover:scale-[1.02]"
+                  className="cursor-pointer w-full px-4 py-3 bg-linear-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-slate-900 rounded-xl font-bold transition-all shadow-lg shadow-yellow-900/30 hover:shadow-yellow-800/40 hover:scale-[1.02]"
                 >
-                  ⬇️ Laadi alla PNG
+                  ⬇️ Laadi alla
                 </button>
               </div>
             </div>
@@ -301,7 +377,7 @@ export default function BuilderPage() {
             <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-slate-900 shadow-2xl p-5 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="absolute top-4 right-4 p-2 rounded-lg bg-slate-800 hover:bg-slate-700"
+                className="fixed border border-gray-700 top-4 right-4 p-2 rounded-lg bg-slate-800 hover:bg-slate-700"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -322,16 +398,34 @@ export default function BuilderPage() {
                 <div className="pb-3 border-b border-slate-700">
                   <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Sisu</h2>
                   <div className="space-y-2">
-                    <button onClick={addText} className="w-full px-4 py-2.5 bg-slate-800 rounded-lg text-left flex items-center gap-2">
+                    <button onClick={addText} className="border border-slate-700 hover:border-slate-600 w-full px-4 py-2.5 bg-slate-800 rounded-lg text-left flex items-center gap-2">
                       <span className="text-xl">✏️</span> Lisa tekst
                     </button>
-                    <label className="w-full px-4 py-2.5 bg-slate-800 rounded-lg cursor-pointer flex items-center gap-2">
+                    <label className="border border-slate-700 hover:border-slate-600 w-full px-4 py-2.5 bg-slate-800 rounded-lg cursor-pointer flex items-center gap-2">
                       <span className="text-xl">🖼️</span> Lisa pilt
                       <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
                     </label>
                   </div>
                 </div>
-
+                <div className="pb-3 border-b border-slate-700">
+                  <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Valmis pildid</h2>
+                  <div className="grid grid-cols-2 gap-2">
+                    {publicImages.map((image, index) => (
+                      <button
+                        key={index}
+                        onClick={() => addSticker(image.path)}
+                        className="cursor-pointer p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors border border-slate-700 hover:border-slate-600 group"
+                        title={image.name}
+                      >
+                        <img
+                          src={image.path}
+                          alt={image.name}
+                          className="w-full h-12 object-contain opacity-80 group-hover:opacity-100 transition-opacity"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="pb-3 border-b border-slate-700">
                   <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Kujundid</h2>
                   <div className="grid grid-cols-3 gap-2">
@@ -350,11 +444,11 @@ export default function BuilderPage() {
                 <div className="pb-3 border-b border-slate-700">
                   <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Värv</h2>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2">
+                    <div className="border border-slate-700 hover:border-slate-600 flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2">
                       <span className="text-sm">Objekti värv</span>
                       <input type="color" value={curColor} onChange={changeColor} className="w-10 h-10 rounded" />
                     </div>
-                    <div className="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2">
+                    <div className="border border-slate-700 hover:border-slate-600 flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2">
                       <span className="text-sm">Taustavärv</span>
                       <input type="color" onChange={changeBackground} className="w-10 h-10 rounded" />
                     </div>
@@ -364,11 +458,28 @@ export default function BuilderPage() {
                 <div>
                   <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Toimingud</h2>
                   <div className="space-y-2">
+                    <button
+                      onClick={toggleBrush}
+                      className={`border border-slate-700 hover:border-slate-600 w-full px-4 py-2.5 rounded-lg font-medium transition-colors
+    ${isDrawing
+                          ? "bg-emerald-600 text-white"
+                          : "bg-slate-800 hover:bg-slate-700"}`}
+                    >
+                      🖌️ {isDrawing ? "Pliiats sees" : "Pliiats"}
+                    </button>
+                    <input
+                      type="range"
+                      min={1}
+                      max={50}
+                      value={brushSize}
+                      onChange={(e) => changeBrushSize(Number(e.target.value))}
+                      className="w-full"
+                    />
                     <button onClick={deleteSelected} className="w-full px-4 py-2.5 bg-red-600/20 border border-red-500/50 rounded-lg text-red-300">
                       🗑️ Kustuta valitud
                     </button>
                     <button onClick={downloadPNG} className="w-full px-4 py-3 bg-linear-to-r from-yellow-500 to-amber-500 text-slate-900 rounded-xl font-bold">
-                      ⬇️ Laadi alla PNG
+                      ⬇️ Laadi alla
                     </button>
                   </div>
                 </div>
@@ -380,6 +491,9 @@ export default function BuilderPage() {
       </div>
 
       <Modal open={open} onCloseAction={() => setOpen(false)} onConfirmAction={handleNewFile} />
+   
+
+
     </div>
   );
 }
