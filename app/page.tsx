@@ -1,6 +1,7 @@
 "use client";
 import Modal from "./components/newCardModal";
-import React, { act, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import * as fabric from "fabric";
 export default function BuilderPage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -274,7 +275,7 @@ export default function BuilderPage() {
                     className="cursor-pointer p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors border border-slate-700 hover:border-slate-600 group"
                     title={image.name}
                   >
-                    <img
+                    <Image
                       src={image.path}
                       alt={image.name}
                       className="w-full h-12 object-contain opacity-80 group-hover:opacity-100 transition-opacity"
@@ -417,7 +418,7 @@ export default function BuilderPage() {
                         className="cursor-pointer p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors border border-slate-700 hover:border-slate-600 group"
                         title={image.name}
                       >
-                        <img
+                        <Image
                           src={image.path}
                           alt={image.name}
                           className="w-full h-12 object-contain opacity-80 group-hover:opacity-100 transition-opacity"
