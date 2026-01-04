@@ -539,8 +539,8 @@ export default function BuilderPage() {
 
 
         {isMobileMenuOpen && (
-          <div className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}>
-            <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-slate-900 shadow-2xl p-5 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="lg:hidden fixed inset-0 z-40 bg-black/60" style={{ animation: 'fadeIn 0.2s ease-out' }} onClick={() => setIsMobileMenuOpen(false)}>
+            <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-slate-900 shadow-2xl p-5 overflow-y-auto overscroll-contain" style={{ animation: 'slideInRight 0.3s ease-out', willChange: 'transform' }} onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="fixed border border-gray-700 top-4 right-4 p-2 rounded-lg bg-slate-800 hover:bg-slate-700"

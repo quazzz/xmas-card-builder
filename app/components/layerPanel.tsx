@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import * as fabric from 'fabric';
 
 interface Layer {
@@ -16,7 +16,7 @@ interface LayerPanelProps {
   onDeleteLayer?: (objectId: string) => void;
 }
 
-export default function LayerPanel({ canvas, layers, onLayerUpdate, onRenameLayer, onDeleteLayer }: LayerPanelProps) {
+function LayerPanel({ canvas, layers, onLayerUpdate, onRenameLayer, onDeleteLayer }: LayerPanelProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -69,6 +69,9 @@ export default function LayerPanel({ canvas, layers, onLayerUpdate, onRenameLaye
     setEditName('');
   };
 
+  const touchStartY = useRef<number | null>(null);
+  const touchStartIndex = useRef<number | null>(null);
+
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
@@ -79,9 +82,8 @@ export default function LayerPanel({ canvas, layers, onLayerUpdate, onRenameLaye
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
-    e.preventDefault();
-    if (!canvas || draggedIndex === null || draggedIndex === dropIndex) {
+  const performReorder = useCallback((startIndex: number, dropIndex: number) => {
+    if (!canvas || startIndex === dropIndex) {
       setDraggedIndex(null);
       return;
     }
@@ -90,11 +92,11 @@ export default function LayerPanel({ canvas, layers, onLayerUpdate, onRenameLaye
     const objects = canvas.getObjects();
     const reversedObjects = [...objects].reverse();
     
-    const draggedObj = reversedObjects[draggedIndex];
+    const draggedObj = reversedObjects[startIndex];
     const targetObj = reversedObjects[dropIndex];
     const targetCanvasIndex = objects.indexOf(targetObj);
     let newIndex: number;
-    if (dropIndex > draggedIndex) {
+    if (dropIndex > startIndex) {
       newIndex = targetCanvasIndex;
     } else {
       newIndex = targetCanvasIndex + 1;
@@ -117,7 +119,75 @@ export default function LayerPanel({ canvas, layers, onLayerUpdate, onRenameLaye
     canvas.renderAll();
     setDraggedIndex(null);
     onLayerUpdate();
+  }, [canvas, onLayerUpdate]);
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (!canvas || draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      return;
+    }
+    performReorder(draggedIndex, dropIndex);
   };
+
+  // Touch handlers for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent, index: number) => {
+    // Prevent default to avoid scrolling while dragging
+    const target = e.target as HTMLElement;
+    // Don't start drag if clicking on interactive elements
+    if (target.tagName === 'BUTTON' || target.tagName === 'INPUT' || target.closest('button') || target.closest('input')) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    touchStartY.current = e.touches[0].clientY;
+    touchStartIndex.current = index;
+    setDraggedIndex(index);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchStartY.current === null || touchStartIndex.current === null) return;
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - touchStartY.current;
+    const itemHeight = 60; // Approximate height of each layer item
+    
+    // Use direction-based movement for simplicity on mobile
+    if (Math.abs(deltaY) > itemHeight / 2) {
+      const direction = deltaY > 0 ? 1 : -1;
+      const newIndex = touchStartIndex.current + direction;
+      const maxIndex = layers.length - 1;
+      
+      if (newIndex >= 0 && newIndex <= maxIndex && newIndex !== touchStartIndex.current) {
+        touchStartIndex.current = newIndex;
+        touchStartY.current = currentY;
+        setDraggedIndex(newIndex);
+      }
+    }
+  }, [layers.length]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (touchStartIndex.current === null || draggedIndex === null) {
+      touchStartY.current = null;
+      touchStartIndex.current = null;
+      setDraggedIndex(null);
+      return;
+    }
+
+    const dropIndex = draggedIndex;
+    const startIndex = touchStartIndex.current;
+    
+    touchStartY.current = null;
+    touchStartIndex.current = null;
+    
+    if (startIndex !== dropIndex && canvas) {
+      performReorder(startIndex, dropIndex);
+    } else {
+      setDraggedIndex(null);
+    }
+  }, [draggedIndex, canvas, performReorder]);
 
   const handleLayerSelect = (layer: Layer) => {
     if (!canvas) return;
@@ -174,7 +244,7 @@ export default function LayerPanel({ canvas, layers, onLayerUpdate, onRenameLaye
       <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
         Kihid ({layers.length})
       </h2>
-      <div className="space-y-1 max-h-150 overflow-y-auto">
+      <div className="layer-container space-y-1 max-h-[400px] overflow-y-auto overscroll-contain will-change-scroll">
         {layers.length === 0 ? (
           <div className="text-sm text-slate-500 text-center py-4">
             Kihid puuduvad
@@ -195,15 +265,18 @@ export default function LayerPanel({ canvas, layers, onLayerUpdate, onRenameLaye
                 onDragStart={(e) => handleDragStart(e, index)}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, index)}
+                onTouchStart={(e) => handleTouchStart(e, index)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
                 className={`
-                  group flex items-center gap-2 p-2 rounded-lg transition-all cursor-move
+                  group flex items-center gap-2 p-2 rounded-lg transition-all cursor-move touch-none
                   ${isActive ? 'bg-emerald-600/30 border border-emerald-500/50' : 'bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50'}
-                  ${draggedIndex === index ? 'opacity-50' : ''}
+                  ${draggedIndex === index ? 'opacity-50 scale-95' : ''}
                 `}
                 onClick={() => handleLayerSelect(layer)}
               >
                 {/* Drag handle */}
-                <div className="text-slate-500 cursor-grab active:cursor-grabbing">
+                <div className="drag-handle text-slate-500 cursor-grab active:cursor-grabbing touch-none">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                   </svg>
@@ -295,3 +368,4 @@ export default function LayerPanel({ canvas, layers, onLayerUpdate, onRenameLaye
   );
 }
 
+export default React.memo(LayerPanel);
