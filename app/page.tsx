@@ -39,9 +39,9 @@ export default function BuilderPage() {
   }, []);
 
   const assignObjectId = useCallback((obj: fabric.FabricObject) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const objId = (obj as any).__layerId || `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     (obj as any).__layerId = objId;
     setLayerNames(prev => {
       if (!prev.has(objId)) {
@@ -67,7 +67,6 @@ export default function BuilderPage() {
 
     const objects = canvas.getObjects();
     const newLayers: Layer[] = objects.map(obj => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const objId = (obj as any).__layerId || '';
       const name = layerNamesRef.current.get(objId) || getDefaultName(obj);
       return {
@@ -75,7 +74,7 @@ export default function BuilderPage() {
         name: name,
         visible: obj.visible !== false,
       };
-    }).reverse(); 
+    }).reverse();
 
     setLayers(newLayers);
   }, [getDefaultName]);
@@ -328,7 +327,7 @@ export default function BuilderPage() {
     if (!actives.length) return;
     actives.forEach(obj => {
       canvas.remove(obj);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
       const objId = (obj as any).__layerId;
       if (objId) {
         setLayerNames(prev => {
@@ -513,9 +512,9 @@ export default function BuilderPage() {
         </aside>
 
         <aside className="hidden lg:flex flex-col w-72 gap-3">
-          <LayerPanel 
-            canvas={canvasInstance} 
-            layers={layers} 
+          <LayerPanel
+            canvas={canvasInstance}
+            layers={layers}
             onLayerUpdate={updateLayers}
             onRenameLayer={(objectId: string, newName: string) => {
               setLayerNames(prev => {
@@ -622,7 +621,30 @@ export default function BuilderPage() {
                     </div>
                   </div>
                 </div>
+                <div className="pb-3 border-b border-slate-700">
+                  <LayerPanel
+                    canvas={canvasInstance}
+                    layers={layers}
+                    onLayerUpdate={updateLayers}
+                    onRenameLayer={(objectId: string, newName: string) => {
+                      setLayerNames(prev => {
+                        const newMap = new Map(prev).set(objectId, newName);
 
+                        layerNamesRef.current = newMap;
+                        return newMap;
+                      });
+                      updateLayers();
+                    }}
+                    onDeleteLayer={(objectId: string) => {
+                      setLayerNames(prev => {
+                        const newMap = new Map(prev);
+                        newMap.delete(objectId);
+                        return newMap;
+                      });
+                      updateLayers();
+                    }}
+                  />
+                </div>
                 <div>
                   <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Toimingud</h2>
                   <div className="space-y-2">
@@ -652,30 +674,7 @@ export default function BuilderPage() {
                   </div>
                 </div>
 
-                <div className="pb-3 border-b border-slate-700">
-                  <LayerPanel 
-                    canvas={canvasInstance} 
-                    layers={layers} 
-                    onLayerUpdate={updateLayers}
-                    onRenameLayer={(objectId: string, newName: string) => {
-                      setLayerNames(prev => {
-                        const newMap = new Map(prev).set(objectId, newName);
-                  
-                        layerNamesRef.current = newMap;
-                        return newMap;
-                      });
-                      updateLayers();
-                    }}
-                    onDeleteLayer={(objectId: string) => {
-                      setLayerNames(prev => {
-                        const newMap = new Map(prev);
-                        newMap.delete(objectId);
-                        return newMap;
-                      });
-                      updateLayers();
-                    }}
-                  />
-                </div>
+
               </div>
             </div>
           </div>
@@ -684,7 +683,7 @@ export default function BuilderPage() {
       </div>
 
       <Modal open={open} onCloseAction={() => setOpen(false)} onConfirmAction={handleNewFile} />
-  
+
     </div>
   );
 }

@@ -244,14 +244,14 @@ function LayerPanel({ canvas, layers, onLayerUpdate, onRenameLayer, onDeleteLaye
       <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
         Kihid ({layers.length})
       </h2>
-      <div className="layer-container space-y-1 max-h-[400px] overflow-y-auto overscroll-contain will-change-scroll">
+      <div className="layer-container space-y-1 max-h-100 overflow-y-auto overscroll-contain will-change-scroll">
         {layers.length === 0 ? (
           <div className="text-sm text-slate-500 text-center py-4">
             Kihid puuduvad
           </div>
         ) : (
           layers.map((layer, index) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             const objId = (layer.object as any).__layerId || '';
             const isEditing = editingId === objId;
             const isActive = canvas.getActiveObject() === layer.object;
@@ -259,7 +259,7 @@ function LayerPanel({ canvas, layers, onLayerUpdate, onRenameLayer, onDeleteLaye
 
             return (
               <div
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
                 key={(layer.object as any).__layerId || index}
                 draggable
                 onDragStart={(e) => handleDragStart(e, index)}
@@ -275,14 +275,13 @@ function LayerPanel({ canvas, layers, onLayerUpdate, onRenameLayer, onDeleteLaye
                 `}
                 onClick={() => handleLayerSelect(layer)}
               >
-                {/* Drag handle */}
+
                 <div className="drag-handle text-slate-500 cursor-grab active:cursor-grabbing touch-none">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                   </svg>
                 </div>
 
-                {/* Visibility toggle */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -303,17 +302,14 @@ function LayerPanel({ canvas, layers, onLayerUpdate, onRenameLayer, onDeleteLaye
                   )}
                 </button>
 
-                {/* Layer icon */}
                 <span className="text-lg">{getLayerIcon(layer.object)}</span>
 
-                {/* Layer name */}
                 {isEditing ? (
                   <input
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     onBlur={(e) => {
-                      // Small delay to allow Enter key to process first
                       setTimeout(() => {
                         if (!isSubmittingRef.current) {
                           handleRenameSubmit(layer, e);
@@ -330,7 +326,7 @@ function LayerPanel({ canvas, layers, onLayerUpdate, onRenameLayer, onDeleteLaye
                     }}
                     onClick={(e) => e.stopPropagation()}
                     onMouseDown={(e) => e.stopPropagation()}
-                    className="flex-1 min-w-0 max-w-[120px] px-2 py-1 bg-slate-700 border border-slate-600 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="flex-1 min-w-0 max-w-30 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     autoFocus
                   />
                 ) : (
@@ -346,13 +342,13 @@ function LayerPanel({ canvas, layers, onLayerUpdate, onRenameLayer, onDeleteLaye
                   </span>
                 )}
 
-                {/* Delete button */}
+             
                 <button
                   onClick={(e) => {
-                    e.stopPropagation();
+                    e.stopPropagation();`asdasd`
                     handleDelete(layer);
                   }}
-                  className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity"
+                  className={`opacity-0  text-red-400 hover:text-red-300 transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'}`}
                   title="Kustuta"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
