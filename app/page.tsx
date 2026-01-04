@@ -1,8 +1,16 @@
 "use client";
 import Modal from "./components/newCardModal";
-import React, { useEffect, useRef, useState } from "react";
+import LayerPanel from "./components/layerPanel";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import * as fabric from "fabric";
+
+interface Layer {
+  object: fabric.FabricObject;
+  name: string;
+  visible: boolean;
+}
+
 export default function BuilderPage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
@@ -11,7 +19,67 @@ export default function BuilderPage() {
   const [curColor, setCurColor] = useState("#000000");
   const [open, setOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [layers, setLayers] = useState<Layer[]>([]);
+  const [layerNames, setLayerNames] = useState<Map<string, string>>(new Map());
+  const [canvasInstance, setCanvasInstance] = useState<fabric.Canvas | null>(null);
   const publicImages = [{ path: '/1.png', name: 'Kuusk' }, { path: '/2.png', name: 'Lumememm' }, { path: '/3.png', name: 'Jõuluvana' }, { path: '/4.png', name: 'Lumehelves' }, { path: '/5.png', name: 'Ilutulestik' }, { path: '/6.png', name: 'Minion' }];
+  const getDefaultName = useCallback((obj: fabric.FabricObject): string => {
+    const type = obj.type || 'object';
+    const typeNames: Record<string, string> = {
+      'rect': 'Ristkülik',
+      'circle': 'Ring',
+      'triangle': 'Kolmnurk',
+      'textbox': 'Tekst',
+      'text': 'Tekst',
+      'image': 'Pilt',
+      'path': 'Joonistus',
+      'group': 'Grupp',
+    };
+    return typeNames[type] || 'Kiht';
+  }, []);
+
+  const assignObjectId = useCallback((obj: fabric.FabricObject) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const objId = (obj as any).__layerId || `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (obj as any).__layerId = objId;
+    setLayerNames(prev => {
+      if (!prev.has(objId)) {
+        const defaultName = getDefaultName(obj);
+        return new Map(prev).set(objId, defaultName);
+      }
+      return prev;
+    });
+  }, [getDefaultName]);
+
+  const layerNamesRef = useRef<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    layerNamesRef.current = layerNames;
+  }, [layerNames]);
+
+  const updateLayers = useCallback(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) {
+      setLayers([]);
+      return;
+    }
+
+    const objects = canvas.getObjects();
+    const newLayers: Layer[] = objects.map(obj => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const objId = (obj as any).__layerId || '';
+      const name = layerNamesRef.current.get(objId) || getDefaultName(obj);
+      return {
+        object: obj,
+        name: name,
+        visible: obj.visible !== false,
+      };
+    }).reverse(); 
+
+    setLayers(newLayers);
+  }, [getDefaultName]);
+
   useEffect(() => {
     if (!canvasRef.current) return;
 
@@ -26,11 +94,58 @@ export default function BuilderPage() {
     brush.width = brushSize;
     canvas.freeDrawingBrush = brush;
 
+    const handleObjectAdded = (e: { target?: fabric.FabricObject }) => {
+      if (e.target) {
+        assignObjectId(e.target);
+        updateLayers();
+      }
+    };
+
+    const handleObjectRemoved = () => {
+      updateLayers();
+    };
+
+    const handleSelectionCreated = () => {
+      updateLayers();
+    };
+
+    const handleSelectionUpdated = () => {
+      updateLayers();
+    };
+
+    const handlePathCreated = (e: { path?: fabric.FabricObject }) => {
+      if (e.path) {
+        assignObjectId(e.path);
+        updateLayers();
+      }
+    };
+
+    const handleObjectModified = () => {
+      updateLayers();
+    };
+
+    canvas.on('object:added', handleObjectAdded);
+    canvas.on('object:removed', handleObjectRemoved);
+    canvas.on('selection:created', handleSelectionCreated);
+    canvas.on('selection:updated', handleSelectionUpdated);
+    canvas.on('path:created', handlePathCreated);
+    canvas.on('object:modified', handleObjectModified);
+
     fabricRef.current = canvas;
+    setCanvasInstance(canvas);
+    updateLayers();
 
     return () => {
+      canvas.off('object:added', handleObjectAdded);
+      canvas.off('object:removed', handleObjectRemoved);
+      canvas.off('selection:created', handleSelectionCreated);
+      canvas.off('selection:updated', handleSelectionUpdated);
+      canvas.off('path:created', handlePathCreated);
+      canvas.off('object:modified', handleObjectModified);
       canvas.dispose();
+      setCanvasInstance(null);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const toggleBrush = () => {
     const canvas = fabricRef.current;
@@ -49,7 +164,9 @@ export default function BuilderPage() {
     canvas.setHeight(height)
     canvas.clear();
     canvas.backgroundColor = '#0f172a';
-    canvas.renderAll()
+    setLayerNames(new Map());
+    canvas.renderAll();
+    updateLayers();
   }
   const addRectangle = () => {
     const canvas = fabricRef.current;
@@ -59,11 +176,12 @@ export default function BuilderPage() {
       width: 100,
       fill: curColor,
       editable: true,
-
     })
+    assignObjectId(rect);
     canvas.add(rect);
     canvas.setActiveObject(rect);
-    canvas.renderAll()
+    canvas.renderAll();
+    updateLayers();
   }
   const addTriangle = () => {
     const canvas = fabricRef.current;
@@ -74,9 +192,11 @@ export default function BuilderPage() {
       fill: curColor,
       editable: true
     })
+    assignObjectId(triangle);
     canvas.add(triangle)
     canvas.setActiveObject(triangle)
     canvas.renderAll();
+    updateLayers();
   }
   const addCircle = () => {
     const canvas = fabricRef.current;
@@ -86,9 +206,11 @@ export default function BuilderPage() {
       fill: curColor,
       editable: true
     })
+    assignObjectId(circle);
     canvas.add(circle)
     canvas.setActiveObject(circle)
-    canvas.renderAll()
+    canvas.renderAll();
+    updateLayers();
   }
   const addText = () => {
     const canvas = fabricRef.current;
@@ -102,8 +224,10 @@ export default function BuilderPage() {
       editable: true
     });
 
+    assignObjectId(text);
     canvas.add(text);
     canvas.setActiveObject(text);
+    updateLayers();
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,9 +248,11 @@ export default function BuilderPage() {
       );
       img.scaleToWidth(300);
       img.set({ left: 150, top: 150 })
+      assignObjectId(img);
       canvas.add(img);
       canvas.setActiveObject(img);
-      canvas.renderAll()
+      canvas.renderAll();
+      updateLayers();
     }
 
 
@@ -141,9 +267,11 @@ export default function BuilderPage() {
     )
     img.scaleToWidth(300)
     img.set({ left: 150, right: 150 })
+    assignObjectId(img);
     canvas.add(img);
     canvas.setActiveObject(img);
-    canvas.renderAll()
+    canvas.renderAll();
+    updateLayers();
   }
 
   const downloadPNG = () => {
@@ -157,7 +285,7 @@ export default function BuilderPage() {
 
     const link = document.createElement("a");
     link.href = dataURL;
-    link.download = "christmas-card.png";
+    link.download = "kaart.png";
     link.click();
   };
 
@@ -200,9 +328,19 @@ export default function BuilderPage() {
     if (!actives.length) return;
     actives.forEach(obj => {
       canvas.remove(obj);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const objId = (obj as any).__layerId;
+      if (objId) {
+        setLayerNames(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(objId);
+          return newMap;
+        });
+      }
     })
     canvas.discardActiveObject();
-    canvas.renderAll()
+    canvas.renderAll();
+    updateLayers();
   };
 
   return (
@@ -278,6 +416,8 @@ export default function BuilderPage() {
                     <Image
                       src={image.path}
                       alt={image.name}
+                      width={100}
+                      height={100}
                       className="w-full h-12 object-contain opacity-80 group-hover:opacity-100 transition-opacity"
                     />
                   </button>
@@ -372,6 +512,31 @@ export default function BuilderPage() {
           </div>
         </aside>
 
+        <aside className="hidden lg:flex flex-col w-72 gap-3">
+          <LayerPanel 
+            canvas={canvasInstance} 
+            layers={layers} 
+            onLayerUpdate={updateLayers}
+            onRenameLayer={(objectId: string, newName: string) => {
+              setLayerNames(prev => {
+                const newMap = new Map(prev).set(objectId, newName);
+
+                layerNamesRef.current = newMap;
+                return newMap;
+              });
+              updateLayers();
+            }}
+            onDeleteLayer={(objectId: string) => {
+              setLayerNames(prev => {
+                const newMap = new Map(prev);
+                newMap.delete(objectId);
+                return newMap;
+              });
+              updateLayers();
+            }}
+          />
+        </aside>
+
 
         {isMobileMenuOpen && (
           <div className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}>
@@ -420,6 +585,8 @@ export default function BuilderPage() {
                       >
                         <Image
                           src={image.path}
+                          width={100}
+                          height={100}
                           alt={image.name}
                           className="w-full h-12 object-contain opacity-80 group-hover:opacity-100 transition-opacity"
                         />
@@ -484,6 +651,31 @@ export default function BuilderPage() {
                     </button>
                   </div>
                 </div>
+
+                <div className="pb-3 border-b border-slate-700">
+                  <LayerPanel 
+                    canvas={canvasInstance} 
+                    layers={layers} 
+                    onLayerUpdate={updateLayers}
+                    onRenameLayer={(objectId: string, newName: string) => {
+                      setLayerNames(prev => {
+                        const newMap = new Map(prev).set(objectId, newName);
+                  
+                        layerNamesRef.current = newMap;
+                        return newMap;
+                      });
+                      updateLayers();
+                    }}
+                    onDeleteLayer={(objectId: string) => {
+                      setLayerNames(prev => {
+                        const newMap = new Map(prev);
+                        newMap.delete(objectId);
+                        return newMap;
+                      });
+                      updateLayers();
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -492,9 +684,7 @@ export default function BuilderPage() {
       </div>
 
       <Modal open={open} onCloseAction={() => setOpen(false)} onConfirmAction={handleNewFile} />
-   
-
-
+  
     </div>
   );
 }
