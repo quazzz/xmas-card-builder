@@ -144,7 +144,7 @@ export default function BuilderPage() {
       canvas.dispose();
       setCanvasInstance(null);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+ 
   }, []);
   const toggleBrush = () => {
     const canvas = fabricRef.current;
@@ -403,7 +403,7 @@ export default function BuilderPage() {
               </div>
             </div>
             <div className="pb-3 border-b border-slate-700">
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Valmis pildid</h2>
+              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Lisa pilte</h2>
               <div className="grid grid-cols-2 gap-2">
                 {publicImages.map((image, index) => (
                   <button
@@ -424,7 +424,7 @@ export default function BuilderPage() {
               </div>
             </div>
             <div className="pb-3 border-b border-slate-700">
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Kujundid</h2>
+              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Lisa kujundeid</h2>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={addRectangle}
@@ -451,7 +451,7 @@ export default function BuilderPage() {
             </div>
 
             <div className="pb-3 border-b border-slate-700">
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Värv</h2>
+              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Muuda värvust</h2>
               <div className="space-y-2">
                 <div className="border border-slate-700 hover:border-slate-600 flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2">
                   <span className="text-sm font-medium">Objekti värv</span>
@@ -573,7 +573,7 @@ export default function BuilderPage() {
                   </div>
                 </div>
                 <div className="pb-3 border-b border-slate-700">
-                  <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Valmis pildid</h2>
+                  <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Lisa pilte</h2>
                   <div className="grid grid-cols-2 gap-2">
                     {publicImages.map((image, index) => (
                       <button
@@ -594,7 +594,7 @@ export default function BuilderPage() {
                   </div>
                 </div>
                 <div className="pb-3 border-b border-slate-700">
-                  <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Kujundid</h2>
+                  <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Lisa kujundeid</h2>
                   <div className="grid grid-cols-3 gap-2">
                     <button onClick={addRectangle} className="px-3 py-3 bg-purple-600/20 border border-purple-500/50 rounded-lg">
                       <div className="w-6 h-6 bg-purple-500 rounded mx-auto"></div>
@@ -609,7 +609,7 @@ export default function BuilderPage() {
                 </div>
 
                 <div className="pb-3 border-b border-slate-700">
-                  <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Värv</h2>
+                  <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Muuda värvust</h2>
                   <div className="space-y-2">
                     <div className="border border-slate-700 hover:border-slate-600 flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2">
                       <span className="text-sm">Objekti värv</span>
